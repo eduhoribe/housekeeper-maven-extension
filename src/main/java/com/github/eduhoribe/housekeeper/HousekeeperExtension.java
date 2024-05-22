@@ -27,9 +27,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Named("housekeeper-maven-extension")
-public class Main extends AbstractMavenLifecycleParticipant {
+public class HousekeeperExtension extends AbstractMavenLifecycleParticipant {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(HousekeeperExtension.class);
     private static final XmlMapper XML_MAPPER = new XmlMapper();
 
     private static final String PLUGINS_XML = ".mvn/plugins.xml";
@@ -55,7 +55,7 @@ public class Main extends AbstractMavenLifecycleParticipant {
 
         List<Dependency> dependencies;
         try {
-            dependencies = Arrays.stream(configuration.getChildren("dependency")).map(Main::buildDependency).collect(Collectors.toList());
+            dependencies = Arrays.stream(configuration.getChildren("dependency")).map(HousekeeperExtension::buildDependency).collect(Collectors.toList());
 
             if (dependencies.isEmpty()) {
                 LOGGER.warn("No dependency found");
@@ -87,7 +87,7 @@ public class Main extends AbstractMavenLifecycleParticipant {
 
         List<Plugin> plugins;
         try {
-            plugins = Arrays.stream(configuration.getChildren("plugin")).map(Main::buildPlugin).collect(Collectors.toList());
+            plugins = Arrays.stream(configuration.getChildren("plugin")).map(HousekeeperExtension::buildPlugin).collect(Collectors.toList());
             if (plugins.isEmpty()) {
                 LOGGER.warn("No plugin found");
             }
