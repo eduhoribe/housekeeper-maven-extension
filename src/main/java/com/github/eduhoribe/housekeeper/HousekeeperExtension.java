@@ -20,10 +20,7 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Named("housekeeper-maven-extension")
@@ -160,8 +157,23 @@ public class HousekeeperExtension extends AbstractMavenLifecycleParticipant {
             model.setDependencyManagement(dependencyManagement);
             project.setModel(model);
 
+            Set<String> dependenciesToInject = dependencies.stream().map(HousekeeperExtension::getDependencyId).collect(Collectors.toSet());
+            Set<Dependency> dependenciesToBeOverwritten = dependencyManagement.getDependencies().stream()
+                .filter(d -> dependenciesToInject.contains(getDependencyId(d))).collect(Collectors.toSet());
+
+            if (!dependenciesToBeOverwritten.isEmpty()) {
+                dependencyManagement.getDependencies().removeIf(dependenciesToBeOverwritten::contains);
+
+                LOGGER.info("Some dependencies were overwritten on the dependency management section");
+                LOGGER.debug("The following dependencies where overwritten: {}", dependenciesToBeOverwritten);
+            }
+
             dependencies.forEach(dependencyManagement::addDependency);
             LOGGER.trace("Dependencies injected!");
         }
+    }
+
+    private static String getDependencyId(Dependency dependency) {
+        return dependency.getGroupId() + ":" + dependency.getArtifactId();
     }
 }
