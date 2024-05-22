@@ -51,7 +51,7 @@ Create a `.mvn/extensions.xml` file with the housekeeper extension
     <extension>
         <groupId>com.github.eduhoribe</groupId>
         <artifactId>housekeeper-maven-extension</artifactId>
-        <version>0.1.1</version>
+        <version>0.1.2</version>
     </extension>
 </extensions>
 ```
