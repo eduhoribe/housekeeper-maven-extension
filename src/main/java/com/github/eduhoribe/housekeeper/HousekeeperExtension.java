@@ -31,6 +31,38 @@ public class HousekeeperExtension extends AbstractMavenLifecycleParticipant {
 
     private static final String PLUGINS_XML = ".mvn/plugins.xml";
     private static final String DEPENDENCY_MANAGEMENT_XML = ".mvn/dependency_management.xml";
+    private static final String PROPERTIES_XML = ".mvn/properties.xml";
+
+    private static Properties getProperties(File rootDirectory) throws MavenExecutionException {
+        Properties properties = new Properties();
+
+        Xpp3Dom configuration;
+        Path config = new File(rootDirectory, PROPERTIES_XML).toPath();
+        if (Files.isRegularFile(config)) {
+            LOGGER.debug("Properties file found at {}", config);
+
+            try (Reader reader = Files.newBufferedReader(config, Charset.defaultCharset())) {
+                configuration = Xpp3DomBuilder.build(reader);
+                LOGGER.debug("Properties file was read successfully");
+
+            } catch (XmlPullParserException | IOException e) {
+                throw new MavenExecutionException("Failed to read properties file at " + config, e);
+            }
+        } else {
+            LOGGER.info("Properties file not found at {}", config);
+            return properties;
+        }
+
+        for (Xpp3Dom propertyDom : configuration.getChildren()) {
+            properties.put(propertyDom.getName(), propertyDom.getValue());
+        }
+
+        if (properties.isEmpty()) {
+            LOGGER.warn("No property found");
+        }
+
+        return properties;
+    }
 
     private static List<Dependency> getDependencies(File rootDirectory) throws MavenExecutionException {
         Xpp3Dom configuration;
@@ -138,11 +170,14 @@ public class HousekeeperExtension extends AbstractMavenLifecycleParticipant {
 
         LOGGER.debug("Using {} as the root directory", rootDirectory);
 
+        Properties properties = getProperties(rootDirectory);
         List<Dependency> dependencies = getDependencies(rootDirectory);
         List<Plugin> plugins = getPlugins(rootDirectory);
         LOGGER.debug("Found {} dependency(ies) and {} plugin(s)", dependencies.size(), plugins.size());
 
         for (MavenProject project : session.getProjects()) {
+            project.getProperties().putAll(properties);
+
             LOGGER.trace("Injecting plugins...");
             Build build = Optional.ofNullable(project.getBuild()).orElseGet(Build::new);
             project.setBuild(build);

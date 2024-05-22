@@ -62,6 +62,7 @@ You can extract some sections inside the `pom.xml` file to a separated file. The
 
 | XPath                          | File                             |
 |--------------------------------|----------------------------------|
+| project → properties           | `.mvn/properties.xml`            |
 | project → build → plugins      | `.mvn/plugins.xml`               |
 | project → dependencyManagement | `.mvn/dependency_management.xml` |
 
