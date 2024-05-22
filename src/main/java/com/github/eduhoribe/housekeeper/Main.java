@@ -6,12 +6,12 @@ import org.apache.maven.AbstractMavenLifecycleParticipant;
 import org.apache.maven.MavenExecutionException;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.*;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomBuilder;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Named;
 import java.io.File;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @Named("housekeeper-maven-extension")
 public class Main extends AbstractMavenLifecycleParticipant {
 
-    private static final Log LOG = new SystemStreamLog();
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     private static final XmlMapper XML_MAPPER = new XmlMapper();
 
     private static final String PLUGINS_XML = ".mvn/plugins.xml";
@@ -39,17 +39,17 @@ public class Main extends AbstractMavenLifecycleParticipant {
         Xpp3Dom configuration;
         Path config = new File(rootDirectory, DEPENDENCY_MANAGEMENT_XML).toPath();
         if (Files.isRegularFile(config)) {
-            if (LOG.isDebugEnabled()) LOG.debug("Dependency management file found");
+            LOGGER.debug("Dependency management file found at {}", config);
 
             try (Reader reader = Files.newBufferedReader(config, Charset.defaultCharset())) {
                 configuration = Xpp3DomBuilder.build(reader);
-                if (LOG.isDebugEnabled()) LOG.debug("Dependency management file was read");
+                LOGGER.debug("Dependency management file was read successfully");
 
             } catch (XmlPullParserException | IOException e) {
-                throw new MavenExecutionException("Failed to read " + DEPENDENCY_MANAGEMENT_XML, e);
+                throw new MavenExecutionException("Failed to read dependency management file at " + config, e);
             }
         } else {
-            LOG.warn("Dependency management file not found in " + DEPENDENCY_MANAGEMENT_XML);
+            LOGGER.info("Dependency management file not found at {}", config);
             return Collections.emptyList();
         }
 
@@ -57,8 +57,8 @@ public class Main extends AbstractMavenLifecycleParticipant {
         try {
             dependencies = Arrays.stream(configuration.getChildren("dependency")).map(Main::buildDependency).collect(Collectors.toList());
 
-            if (dependencies.isEmpty() && LOG.isDebugEnabled()) {
-                LOG.debug("No dependency found");
+            if (dependencies.isEmpty()) {
+                LOGGER.warn("No dependency found");
             }
 
         } catch (Exception e) {
@@ -71,25 +71,25 @@ public class Main extends AbstractMavenLifecycleParticipant {
         Xpp3Dom configuration;
         Path config = new File(rootDirectory, PLUGINS_XML).toPath();
         if (Files.isRegularFile(config)) {
-            if (LOG.isDebugEnabled()) LOG.debug("Plugin file found");
+            LOGGER.debug("Plugin file found at {}", config);
 
             try (Reader reader = Files.newBufferedReader(config, Charset.defaultCharset())) {
                 configuration = Xpp3DomBuilder.build(reader);
-                if (LOG.isDebugEnabled()) LOG.debug("Plugin file was read");
+                LOGGER.debug("Plugin file was read successfully");
 
             } catch (XmlPullParserException | IOException e) {
-                throw new MavenExecutionException("Failed to read " + PLUGINS_XML, e);
+                throw new MavenExecutionException("Failed to read plugin file at " + config, e);
             }
         } else {
-            LOG.warn("Plugin file not found in " + PLUGINS_XML);
+            LOGGER.info("Plugin file not found at {}", config);
             return Collections.emptyList();
         }
 
         List<Plugin> plugins;
         try {
             plugins = Arrays.stream(configuration.getChildren("plugin")).map(Main::buildPlugin).collect(Collectors.toList());
-            if (plugins.isEmpty() && LOG.isDebugEnabled()) {
-                LOG.debug("No plugin found");
+            if (plugins.isEmpty()) {
+                LOGGER.warn("No plugin found");
             }
 
         } catch (Exception e) {
@@ -139,19 +139,21 @@ public class Main extends AbstractMavenLifecycleParticipant {
     public void afterProjectsRead(MavenSession session) throws MavenExecutionException {
         File rootDirectory = session.getRequest().getMultiModuleProjectDirectory();
 
-        if (LOG.isDebugEnabled()) LOG.info("Using '" + rootDirectory + "' as the root directory");
+        LOGGER.debug("Using {} as the root directory", rootDirectory);
 
         List<Dependency> dependencies = getDependencies(rootDirectory);
         List<Plugin> plugins = getPlugins(rootDirectory);
+        LOGGER.debug("Found {} dependency(ies) and {} plugin(s)", dependencies.size(), plugins.size());
 
         for (MavenProject project : session.getProjects()) {
-            // Inject plugins
+            LOGGER.trace("Injecting plugins...");
             Build build = Optional.ofNullable(project.getBuild()).orElseGet(Build::new);
             project.setBuild(build);
 
             plugins.forEach(build::addPlugin);
+            LOGGER.trace("Plugins injected!");
 
-            // Inject dependencies
+            LOGGER.trace("Injecting dependencies...");
             Model model = Optional.ofNullable(project.getModel()).orElseGet(Model::new);
             DependencyManagement dependencyManagement = Optional.ofNullable(model.getDependencyManagement()).orElseGet(DependencyManagement::new);
 
@@ -159,6 +161,7 @@ public class Main extends AbstractMavenLifecycleParticipant {
             project.setModel(model);
 
             dependencies.forEach(dependencyManagement::addDependency);
+            LOGGER.trace("Dependencies injected!");
         }
     }
 }
