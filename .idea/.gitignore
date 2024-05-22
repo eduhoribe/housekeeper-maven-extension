@@ -2,8 +2,17 @@
 /workspace.xml
 /tasks.xml
 /usage.statistics.xml
-/dictionaries
+/dictionaries/
 /shelf/
+
+### Sensitive or high-churn files ###
+/dataSources/
+/dataSources.ids
+/dataSources.local.xml
+/sqlDataSources.xml
+/dynamic.xml
+/uiDesigner.xml
+/dbnavigator.xml
 
 ### Gradle and Maven with auto-import ###
 /artifacts
@@ -16,3 +25,12 @@
 ### SonarLint plugin ###
 /sonarlint/
 /sonarlint-state.xml
+
+### CSV Editor plugin ###
+/csv-editor.xml
+
+### Developer Tools plugin ###
+/developer-tools.xml
+
+### GitToolBox plugin ###
+/git_toolbox_prj.xml
