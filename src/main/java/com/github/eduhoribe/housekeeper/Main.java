@@ -14,12 +14,12 @@ import org.codehaus.plexus.util.xml.Xpp3DomBuilder;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 import javax.inject.Named;
+import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -35,9 +35,9 @@ public class Main extends AbstractMavenLifecycleParticipant {
     private static final String PLUGINS_XML = ".mvn/plugins.xml";
     private static final String DEPENDENCY_MANAGEMENT_XML = ".mvn/dependency_management.xml";
 
-    private static List<Dependency> getDependencies(String rootDirectory) throws MavenExecutionException {
+    private static List<Dependency> getDependencies(File rootDirectory) throws MavenExecutionException {
         Xpp3Dom configuration;
-        Path config = Paths.get(rootDirectory, DEPENDENCY_MANAGEMENT_XML);
+        Path config = new File(rootDirectory, DEPENDENCY_MANAGEMENT_XML).toPath();
         if (Files.isRegularFile(config)) {
             if (LOG.isDebugEnabled()) LOG.debug("Dependency management file found");
 
@@ -67,9 +67,9 @@ public class Main extends AbstractMavenLifecycleParticipant {
         return dependencies;
     }
 
-    private static List<Plugin> getPlugins(String rootDirectory) throws MavenExecutionException {
+    private static List<Plugin> getPlugins(File rootDirectory) throws MavenExecutionException {
         Xpp3Dom configuration;
-        Path config = Paths.get(rootDirectory, PLUGINS_XML);
+        Path config = new File(rootDirectory, PLUGINS_XML).toPath();
         if (Files.isRegularFile(config)) {
             if (LOG.isDebugEnabled()) LOG.debug("Plugin file found");
 
@@ -137,7 +137,9 @@ public class Main extends AbstractMavenLifecycleParticipant {
 
     @Override
     public void afterProjectsRead(MavenSession session) throws MavenExecutionException {
-        String rootDirectory = session.getExecutionRootDirectory();
+        File rootDirectory = session.getRequest().getMultiModuleProjectDirectory();
+
+        if (LOG.isDebugEnabled()) LOG.info("Using '" + rootDirectory + "' as the root directory");
 
         List<Dependency> dependencies = getDependencies(rootDirectory);
         List<Plugin> plugins = getPlugins(rootDirectory);
